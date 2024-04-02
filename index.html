@@ -1,23 +1,1057 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เว็บ 2566</title>
+    <title>Work6</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link  href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
     <style>
-        /* สไตล์ CSS สำหรับ header */
-        header {
-            background-color: #007bff;
-            color: white; 
-            padding: 20px; 
-            text-align: center; 
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #2196F3;
+            color: white;
+        }
+        .question-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .question-text {
+            flex: 1; 
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-right > * {
+            margin-left: 10px;
+        }
+
+        .student-info-container {
+            display: flex;
+            width: 100%;
+        }
+
+        .student-info-left {
+            width: 25%;
+            padding-right: 10px;
+        }
+
+        .student-info-right {
+            width: 70%;
+            padding-left: 10px;
+        }
+        .column {
+            flex: 1;
+            text-align: center;
         }
     </style>
+
 </head>
 <body>
-    <header>
-        <h1>WEB 2566</h1>
-    </header>
-    <p></p>
+    <div id="app">
+    <v-app>
+        
+        <v-container>
+            <div class="navbar">
+                <div>{{ title }}</div>
+                <div class="navbar-right">
+                    <template v-if="user">
+                        <div class="pa-2">
+                            <v-avatar><img :src="user.photoURL" /></v-avatar>
+                        </div>
+                        <div>{{ user.displayName }}</div>
+                        <div>{{ user.email }}</div>
+                        <v-btn @click="google_logout()">Logout</v-btn>
+                    </template>
+                    <template v-else>
+                        <v-btn @click="google_login()">Login</v-btn>
+                    </template>
+                </div>
+            </div>
+            <div class="student-info-container">
+                <div class="student-info-left">
+                    <v-card v-if="student">
+                        <v-card-title class="bg-blue-grey">Student Information</v-card-title>
+                        <v-card-text>
+                            <div>ID: {{ this.Id }}</div>
+                            <div>Section: {{ this.Section }}</div>
+                        </v-card-text>
+                    </v-card>
+                    <v-card v-if="teacher">
+                        <v-card-title class="bg-blue-grey">Teacher Information</v-card-title>
+                        <v-card-text>
+                            <div>Name: {{ this.username }}</div>
+                            <div>Email: {{ this.email }}</div>
+                        </v-card-text>
+                    </v-card>
+                </div>
+                <div class="student-info-right">
+                    <v-card v-if="student">
+                        <v-card-title>กรอกรหัส</v-card-title>
+                        <v-card-text>
+                            <v-text-field v-model="roomCode" label="รหัสห้อง"></v-text-field>
+                            <v-btn @click="fetchQuestionsByRoom">ค้นหา</v-btn>
+                        </v-card-text>
+                        
+                        <v-divider></v-divider>
+                        <v-card v-if="x">
+                            <v-card-title>รายการคำถาม</v-card-title>
+                            <v-card v-for="(question, index) in questionsByRoom" :key="index">
+                                <v-card-title>
+                                    <div class="question-text">{{ question.question }}</div>
+                                    <v-text-field v-model="answers[index]" label="คำตอบ"></v-text-field>
+                                    <v-btn @click="saveanswer(question, index)" color="blue" small>save answer</v-btn>
+                                </v-card-title>
+                            </v-card>
+                            <v-card class="d-flex justify-center mt-2">
+                                <v-btn v-if="questionsByRoom.length > 0" @click="checkin" color="blue" small class="mx-2">Check in</v-btn>
+                                <v-btn v-if="questionsByRoom.length > 0" @click="Exitroom" color="blue" small class="mx-2">Exit</v-btn>
+                            </v-card>
+                        </v-card>
+                    </v-card>
+                   
+                        
+                
+                <v-card v-if="teacher">
+                    <v-btn @click="editteacher1()">Edit Student</v-btn>
+                    <v-btn @click="editteacher2()" @click="autoReaddata">Generate Room</v-btn>
+                    <v-btn @click="editteacher3()">Add Question</v-btn>
+                    <v-btn @click="editteacher4()">View Answers</v-btn>
+                    <v-btn @click="editteacher5()">Check in</v-btn>
+                </v-card>
+                <v-card v-if="Teacher1">
+                <table width="100%">
+                    <thead>
+                    <tr>
+                        <td>รหัส</td>
+                        <td>ชื่อ</td>
+                        <td>Email</td>
+                        <td>Section</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="(s) in students">
+                        <td>{{s.id}}</td>
+                        <td>{{s.name}}</td>
+                        <td>{{s.email}}</td>
+                        <td>{{s.section}}</td>
+                        <td>
+                            <td>
+                                <v-btn @click="edit(s)"><v-icon icon="mdi-account-edit"></v-icon></v-btn>
+                                <v-btn @click="deletestudent(s)"><v-icon icon="mdi-account-remove"></v-icon></v-btn>
+                            </td>
+                            
+                    </tr>
+                    </tbody>
+                </table>
+                <v-card v-if="ed">
+                    <v-card-text class="pa-6">
+                        <v-card-title class="bg-blue-grey">รายชื่อนักเรียน</v-card-title>
+                        <v-text-field v-model="editstd.id" label="รหัส"></v-text-field>
+                        <v-text-field v-model="editstd.name" label="=ชื่อ"></v-text-field>
+                        <v-text-field v-model="editstd.email" label="อีเมลบ"></v-text-field>
+                        <v-text-field v-model="editstd.section" label="เซค"></v-text-field>
+                </v-card-text>
+                <v-card-actions>
+                        <v-btn @click="savedata()">Save</v-btn>
+                        <v-btn @click="ed=0">Cancel</v-btn>
+                </v-card-actions>
+                </v-card>
+        
+        
+            <v-card-actions>
+                <v-btn @click="readData()">Update student</v-btn>
+                <v-btn @click="addData()">Add Data</v-btn>
+            </v-card-actions>
+            </v-card>
+        <v-card  v-if="Teacher2">
+            
+            
+            <v-card >
+                <v-card-title>รหัสทีได้</v-card-title>
+                <v-card-text>
+                    {{ generatedId }}
+                </v-card-text>
+            </v-card>
+            <v-card-title>เพิ่มข้อมูลห้อง</v-card-title>
+    <v-card-text>
+        <v-row>
+            <v-col cols="12" md="6">
+                <v-text-field v-model="roomDate" label="วันที่ (dd/mm/yy)"></v-text-field>
+            </v-col>
+            <v-col cols="12" md="6">
+                <v-text-field v-model="roomTime" label="เวลา"></v-text-field>
+            </v-col>
+            <v-col cols="12">
+                <v-text-field v-model="roomSubject" label="ชื่อวิชา"></v-text-field>
+            </v-col>
+            <v-col cols="12">
+                <v-text-field v-model="roomLocation" label="สถานที่เรียน"></v-text-field>
+            </v-col>
+        </v-row>
+    </v-card-text>
+    <v-card-actions>
+        <v-btn @click="addRoomData">เพิ่มข้อมูล</v-btn>
+    </v-card-actions>
+    <v-card>
+        <v-card>
+            <v-card-title class="headline">
+                <div class="d-flex justify-space-between align-center">
+                    <span class="column">รหัส</span>
+                    <span class="column">วันที่</span>
+                    <span class="column">ชื่อวิชา</span>
+                    <span class="column">สถานที่เรียน</span>
+                    <span class="column">          </span> 
+                </div>
+            </v-card-title>
+        </v-card>
+        
+        <v-card v-for="(room, index) in rooms" :key="index">
+            <v-card-title>
+                <div class="d-flex justify-space-between align-center">
+                    <span class="column">{{ room.room }}</span>
+                    <span class="column">{{ room.date }}</span>
+                    <span class="column">{{ room.subject }}</span>
+                    <span class="column">{{ room.location }}</span>
+                    
+                    <v-btn @click="deleteDataroom(room)" color="error" small>Delete room</v-btn>
+                </div>
+            </v-card-title>
+        </v-card>
+            <v-card v-if="edr">
+                <v-card-text class="pa-6">
+                    <v-card-title class="bg-blue-grey">ห้อง</v-card-title>
+                    <v-text-field v-model="editstd.room" label="รหัส"></v-text-field>
+                    
+            </v-card-text>
+            <v-card-actions>
+                    <v-btn @click="savedataroom()">Save</v-btn>
+                    <v-btn @click="edr=0">Cancel</v-btn>
+            </v-card-actions>
+            </v-card>
+    
+    
+        
+            
+    </v-card>
+    </v-card    >
+
+    <v-card v-if="Teacher3">
+        <v-card-title>เพิ่มคำถาม</v-card-title>
+        <v-card-text>
+            <v-text-field v-model="questionText" label="คำถาม"></v-text-field>
+            <v-text-field v-model="roomText" label="ห้อง"></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+            <v-btn @click="addQuestionAndRoom">Submit</v-btn>
+        </v-card-actions>
+    </v-card>
+    
+    <v-card v-if="Teacher3">
+        <v-card-title>รายการคำถาม</v-card-title>
+        <v-card-text>
+            <v-text-field v-model="roomCode" label="รหัสห้อง"></v-text-field>
+            <v-btn @click="fetchQuestionsByRoom">ค้นหา</v-btn>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card v-for="(question, index) in questionsByRoom" :key="index">
+            <v-card-title class="question-title">
+                <div class="question-text">{{ question.question }}</div>
+                <v-btn @click="deleteQuestion(question)" color="error" small>Delete question</v-btn>
+            </v-card-title>
+        </v-card>
+    </v-card>
+
+    <v-card v-if="Teacher4">
+        <v-card-title>รหัสห้อง</v-card-title>
+        <v-card-text>
+            <v-text-field v-model="roomsearch" label="รหัสห้อง"></v-text-field>
+            <v-btn @click="fetchAnswerByRoom">ค้นหา</v-btn>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card>
+            <v-card-title class="headline">
+                <div class="d-flex justify-space-between align-center">
+                    <span class="column">ห้อง</span>
+                    <span class="column">คำถาม</span>
+                    <span class="column">คำตอบ</span>
+                    <span class="column">รหัส</span>
+                </div>
+            </v-card-title>
+        </v-card>
+        <v-card v-for="(answer, index) in answerByRoom" :key="index">
+            <v-card-title class="question-title">
+                <span class="column">{{ answer.room }}</span>
+                    <span class="column">{{ answer.question }}</span>
+                    <span class="column">{{ answer.answer }}</span>
+                    <span class="column">{{ answer.student }}</span>
+            </v-card-title>
+        </v-card>
+    </v-card>
+    <v-card v-if="Teacher5">
+        <v-card-title>รหัสห้อง</v-card-title>
+        <v-card-text>
+            <v-text-field v-model="roomsearch" label="รหัสห้อง"></v-text-field>
+            <v-btn @click="fetchstudentByRoom">ค้นหา</v-btn>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card>
+            <v-card-title class="headline">
+                <div class="d-flex justify-space-between align-center">
+                    <span class="column">ห้อง</span>
+                    <span class="column">รหัส</span>
+                    <span class="column">Email</span>
+                    <span class="column">เวลา</span>
+                    <span class="column">วันที่</span>
+                </div>
+            </v-card-title>
+        </v-card>
+        <v-card v-for="(checkins, index) in checkins" :key="index">
+            <v-card-title class="question-title">
+                <span class="column">{{ checkins.room }}</span>
+                    <span class="column">{{ checkins.id }}</span>
+                    <span class="column">{{ checkins.email }}</span>
+                    <span class="column">{{ checkins.time }}</span>
+                    <span class="column">{{ checkins.date }}</span>
+            </v-card-title>
+        </v-card>
+    </v-card>
+    
+
+    
+
+        
+           
+        </v-container>
+       
+        <v-card v-if =  "newStudent">
+            <v-card-title class="bg-blue-grey">Update Student Data</v-card-title>
+            <v-card-text>
+                <v-text-field v-model="Id" label="รหัสนักศึกษามีขีด" @input="validateId"></v-text-field>
+                <v-text-field v-model="Section" label="Section" @input="validateSection"></v-text-field>
+            </v-card-text>
+            <v-card-actions>
+                <v-btn color="primary" @click="updateNewStudent" :disabled="!isIdValid || !isSectionValid">Update</v-btn>
+            </v-card-actions>
+        </v-card>
+        </v-container>
+    </v-app>  
+    
+
+    </div>
+    <script>
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7hy3hFLpE_A-mWkVKnT__OvDdMOT6b8o",
+            authDomain: "projectweb-2566.firebaseapp.com",
+            projectId: "projectweb-2566",
+            storageBucket: "projectweb-2566.appspot.com",
+            messagingSenderId: "1037184948436",
+            appId: "1:1037184948436:web:25ecf1dc6e8481b4dd0341",
+            measurementId: "G-89KB8FVD9N"
+          };
+        firebase.initializeApp(firebaseConfig);      
+        const db = firebase.firestore();
+
+    const vuetify = Vuetify.createVuetify();
+    const app = Vue.createApp({
+        data() {
+            return {
+            title: "ล็อกอินก่อนเด้อ",
+            footer: "ระบุ รหัส ชื่อ-สกุล สาขา",
+            students: [],
+            editstd: {},
+            editMode: false,
+            user: null,
+            ustudent: null,
+            idLength: 6, 
+            generatedId:null,
+            teacher: false,
+            student: false,
+            room:"noen",
+            username:"",
+            email:'',
+            newStudent:false,
+            Id:"",
+            Section:"",
+            ustudent:[],
+            editSection:"",
+            editMod:"",
+            roomCode: "",
+            questions: [],
+            showQuestionCard: false,
+            currentUserId: "",
+            Teacher1:false,
+            Teacher2:false,
+            Teacher3:false,
+            Teacher4:false,
+            ed:0,
+            rooms: [],
+            edr:0,
+            roomDate: "",
+            roomTime: "",
+             roomSubject: "",
+            roomLocation: "",
+            x:false,
+            questionsByRoom: [], 
+            answerByRoom: [], 
+            roomText:"",
+            questionText:"", 
+            answer:"",
+            roomIdforsave:"",
+            roomsearch:"",
+            answers: [],
+            checkins:[],
+            
+
+            };
+        },
+
+        mounted() {
+            firebase.auth().onAuthStateChanged((user)=>{
+            if (user) {
+                this.user = user.toJSON();
+                
+                
+            }else{
+                this.user = null;
+            }
+            });
+        },
+    methods: {
+
+        fetchQuestionsByRoom() {
+            this.questionsByRoom = [];
+            this.x=true;
+            db.collection("question")
+                .where("room", "==", this.roomCode)
+                .get()
+                .then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        this.questionsByRoom.push({ id: doc.id, ...doc.data() });
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error fetching questions:", error);
+                });
+        },
+        fetchAnswerByRoom() {
+            this.answerByRoom = []; // แก้จาก answersByRoom เป็น answerByRoom
+            db.collection("answer")
+                .where("room", "==", this.roomsearch)
+                .get()
+                .then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        this.answerByRoom.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log(this.answerByRoom); // ให้พิมพ์ค่าที่ได้ไว้ดูใน Console เพื่อตรวจสอบ
+                })
+                .catch((error) => {
+                    console.error("Error fetching answers:", error);
+                });
+        },
+        fetchstudentByRoom() {
+            this.checkins = []; // กำหนดให้ตัวแปร checkins เป็น array ใหม่เพื่อเก็บข้อมูลใหม่ที่ได้รับ
+            db.collection("checkin")
+                .where("room", "==", this.roomsearch)
+                .get()
+                .then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        // แปลง timestamp เป็น Date
+                        const timestamp = doc.data().timecheckin.toDate();
+                        // สร้างข้อความที่มีรูปแบบของวันที่
+                        const date = timestamp.toLocaleDateString();
+                        // สร้างข้อความที่มีรูปแบบของเวลา
+                        const time = timestamp.toLocaleTimeString();
+                        // สร้างข้อมูลใหม่ที่รวมข้อมูล email, id, room, date, และ time
+                        const data = {
+                            email: doc.data().email,
+                            id: doc.data().id,
+                            room: doc.data().room,
+                            date: date,
+                            time: time
+                        };
+                        // เพิ่มข้อมูลลงในอาร์เรย์ checkins
+                        this.checkins.push(data);
+                    });
+                    console.log(this.checkins); // ให้พิมพ์ค่าที่ได้ไว้ดูใน Console เพื่อตรวจสอบ
+                })
+                .catch((error) => {
+                    console.error("Error fetching answers:", error);
+                });
+        },
+        // Function to delete a question
+        deleteQuestion(question) {
+            if (confirm("Are you sure you want to delete this question?")) {
+                // Delete the question from Firestore based on its ID
+                db.collection("question").doc(question.id).delete()
+                    .then(() => {
+                        // Remove the question from the displayed list
+                        this.questionsByRoom = this.questionsByRoom.filter((q) => q.id !== question.id);
+                        alert("Question deleted successfully.");
+                    })
+                    .catch((error) => {
+                        console.error("Error deleting question:", error);
+                        alert("An error occurred while deleting the question.");
+                    });
+            }
+        },
+
+        addQuestionAndRoom() {
+            if (!this.questionText || !this.roomText) {
+                alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+                return;
+            }
+    
+            try {
+                db.collection("question").add({
+                    question: this.questionText,
+                    room: this.roomText
+                });
+
+                alert("บันทึกข้อมูลคำถามและห้องเรียบร้อยแล้ว");
+    
+                this.questionText = "";
+                this.roomText = "";
+            } catch (error) {
+                console.error("Error adding question and room:", error);
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลคำถามและห้อง");
+            }
+        },
+
+        async addRoomData() {
+            if (!this.roomDate || !this.roomTime || !this.roomSubject || !this.roomLocation) {
+                alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+                return;
+            }
+    
+            try {
+                const roomId = this.generateId(6);
+                this.generatedId=roomId;
+                await db.collection("room").doc(roomId).set({
+                    date: this.roomDate,
+                    time: this.roomTime,
+                    subject: this.roomSubject,
+                    location: this.roomLocation,
+                    room: this.generatedId,
+
+                    // สามารถเพิ่ม properties เพิ่มเติมตามความต้องการได้
+                });
+    
+                // แสดงข้อความแจ้งเตือนว่าข้อมูลถูกบันทึกเรียบร้อย
+                alert("บันทึกข้อมูลห้องเรียบร้อยแล้ว");
+    
+                // เคลียร์ค่าในฟอร์มหลังจากบันทึกข้อมูลเสร็จสิ้น
+                this.roomDate = "";
+                this.roomTime = "";
+                this.roomSubject = "";
+                this.roomLocation = "";
+            } catch (error) {
+                console.error("Error adding room data:", error);
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลห้อง");
+            }
+        },
+
+        async saveanswer(question, index) {
+            // ตรวจสอบว่ามีข้อมูลที่จำเป็นถูกกรอกหรือไม่
+            console.log(question.question);
+            console.log(this.roomCode);
+            var currentDate = new Date();
+            var timestamp = currentDate.getTime();
+            
+            // ดึงคำตอบที่ถูกพิมพ์สำหรับคำถามที่กำลังรับคำตอบอยู่
+            const answer = this.answers[index];
+            
+            if (!answer) {
+                alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+                return;
+            }
+        
+            try {
+                // ค้นหาเอกสารที่มี student, room, และ answer เหมือนกับข้อมูลที่ต้องการบันทึก
+                const querySnapshot = await db.collection("answer")
+                    .where("student", "==", this.Id)
+                    .where("room", "==", this.roomCode)
+                    .where("question", "==", question.question)
+                    .get();
+        
+                // วนลูปเพื่อลบเอกสารที่พบ
+                querySnapshot.forEach(async (doc) => {
+                    await db.collection("answer").doc(doc.id).delete();
+                    console.log("Document successfully deleted!");
+                });
+        
+                // เพิ่มข้อมูลคำตอบเข้าไปใน Firestore
+                await db.collection("answer").add({
+                    question: question.question,
+                    room: this.roomCode,
+                    answer: answer, // ใช้ค่า answer ที่ถูกพิมพ์สำหรับคำถามที่กำลังรับคำตอบ
+                    student: this.Id,
+                    time: timestamp,
+                });
+        
+                // แสดงข้อความแจ้งเตือนว่าข้อมูลถูกบันทึกเรียบร้อย
+                alert("บันทึกข้อมูลคำตอบเรียบร้อยแล้ว");
+        
+                // เคลียร์ค่าในฟอร์มหลังจากบันทึกข้อมูลเสร็จสิ้น
+            } catch (error) {
+                console.error("Error adding room data:", error);
+                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลคำตอบ");
+            }
+        },
+        Exitroom(){
+            this.x=false;
+        },
+        async checkin() {
+            // ตรวจสอบว่ามีข้อมูลที่จำเป็นถูกกรอกหรือไม่
+            if (!this.user) {
+                alert("กรุณาล็อกอิน");
+                return;
+            }
+        
+            try {
+                // สร้าง timestamp ในรูปแบบของคลาส firebase.firestore.Timestamp
+                const timestamp = firebase.firestore.Timestamp.fromDate(new Date());
+        
+                // ตรวจสอบเอกสารที่มี id, room, และ email เหมือนกัน
+                const querySnapshot = await db.collection("checkin")
+                    .where("id", "==", this.Id)
+                    .where("room", "==", this.roomCode)
+                    .where("email", "==", this.email)
+                    .get();
+        
+                // ลบเอกสารที่ตรงกับเงื่อนไขที่กำหนด
+                querySnapshot.forEach(async doc => {
+                    await db.collection("checkin").doc(doc.id).delete();
+                });
+        
+                // เพิ่มข้อมูล checkin เข้าสู่ Firestore
+                await db.collection("checkin").add({
+                    id: this.Id,
+                    room: this.roomCode,
+                    timecheckin: timestamp,
+                    email: this.email,
+                });
+        
+                // แสดงข้อความแจ้งเตือนว่า checkin เสร็จสิ้น
+                alert("Checkin เรียบร้อย");
+        
+            } catch (error) {
+                console.error("Error adding room data:", error);
+                alert("เกิดข้อผิดพลาดในการ checkin");
+            }
+        },
+        getstudent(email){
+            db.collection("students")
+            .where("email","==",email)
+            .limit(1)
+            .get()
+            .then(
+                (querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                this.ustudent = { id: doc.id, ...doc.data() };
+                });
+            }
+            );
+        },
+        readData() {
+            db.collection("students")
+                .get()
+                .then((querySnapshot) => {
+                var stdlist = [];
+                querySnapshot.forEach((doc) => {
+                    stdlist.push({ id: doc.id, ...doc.data() });
+                });
+                this.students = stdlist;
+                });
+            },
+            readDataroom() {
+                db.collection("room")
+                    .get()
+                    .then((querySnapshot) => {
+                    var rooms = [];
+                    querySnapshot.forEach((doc) => {
+                        rooms.push({ id: doc.id, ...doc.data() });
+                    });
+                    console.log(rooms)
+                    this.rooms = rooms;
+                    });
+                },
+        
+        editteacher1(){
+            this.Teacher1=true;
+            this.Teacher2=false;
+            this.Teacher3=false;
+            this.Teacher4=false;
+            this.Teacher5=false;
+            this.readData();
+        },
+        editteacher2(){
+            this.Teacher1=false;
+            this.Teacher2=true;
+            this.Teacher3=false;
+            this.Teacher4=false;
+            this.autoReaddata();
+            this.Teacher5=false;
+        },
+        editteacher3(){
+            this.Teacher1=false;
+            this.Teacher2=false;
+            this.Teacher3=true;
+            this.Teacher4=false;
+            this.Teacher5=false;
+        },
+        editteacher4(){
+            this.Teacher1=false;
+            this.Teacher2=false;
+            this.Teacher3=false;
+            this.Teacher4=true;
+            this.Teacher5=false;
+        },
+        editteacher5(){
+            this.Teacher1=false;
+            this.Teacher2=false;
+            this.Teacher3=false;
+            this.Teacher4=false;
+            this.Teacher5=true;
+        },
+
+        generateId(length) {
+            let result = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+              result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+          },
+          generateNewId() {
+            this.generatedId = this.generateId(this.idLength);
+            const a =this.generatedId.toString()
+            db.collection("room").doc(a).set({ room: a });
+        },
+        
+          getteacher(email){
+            console.log(email);
+            db.collection("teacher")
+              .where("email","==",email)
+              .limit(1)
+              .get()
+              .then(
+                (querySnapshot) => {
+                 querySnapshot.forEach((doc) => {
+                    const teachers = doc.data();
+                    if(teachers.email == email){
+                    console.log(teachers.email)
+                    this.teacher=true;
+                    console.log("kuy");
+                    }
+                    else{
+                        console.log("kuy");
+                    db.collection("students")
+                    .where("email","==",email)
+                    .limit(1)
+                    .get()
+                    .then(
+                        (querySnapshot) => {
+                        querySnapshot.forEach((doc) => {
+                            const students = doc.data();
+                            if(students.email == email){
+                                console.log(students.email)
+                                this.student=true;
+                                console.log("hee");}
+                            else{
+                                this.newStudent=true;
+                                console.log("tad");
+                            }
+                });
+               }
+            );
+
+
+            }
+                    
+                console.log(teachers.email);
+                console.log(teachers);
+                });
+                
+                
+               }
+               
+            );
+          }, 
+          async getTeacher(email) {
+            console.log(email);
+            try {
+                const teacherQuerySnapshot = await db.collection("teacher")
+                    .where("email", "==", email)
+                    .limit(1)
+                    .get();
+        
+                if (!teacherQuerySnapshot.empty) {
+                    teacherQuerySnapshot.forEach((doc) => {
+                        const teachers = doc.data();
+                        if (teachers.email == email) {
+                            console.log(teachers.email);
+                            this.teacher = true;
+                            this.editStudent=false;
+                            console.log("kuy");
+                        }
+                    });
+                } else {
+                    console.log("kuyhee");
+                    const studentQuerySnapshot = await db.collection("students")
+                        .where("email", "==", email)
+                        .limit(1)
+                        .get();
+        
+                    if (!studentQuerySnapshot.empty) {
+                        studentQuerySnapshot.forEach((doc) => {
+                            const students = doc.data();
+                            console.log(students.id);
+                            console.log(students.section);
+                            if (students.email == email) {
+                                console.log(students);
+                                console.log(students.email);
+                                this.student = true;
+                                this.Id= students.id;
+                                this.Section=students.section;
+                                console.log("hee");
+                                console.log(this.Id);
+                                console.log(this.Section);
+                            } else {
+                                return;
+                            }
+                        });
+                    }
+                    if(studentQuerySnapshot.empty){
+                        console.log( this.username);
+                        await db.collection("students").doc(email).set({ name: this.username, email: this.email });
+                        this.newStudent = true;
+                        console.log("tad");
+                    }
+                }
+            } catch (error) {
+                console.error("Error getting teacher:", error);
+            }
+        },
+        
+        
+    
+       
+
+
+
+
+        editStudent() {
+            this.editId = this.Id;
+            this.editSection = this.Section;
+            this.editMode = true; 
+        },
+        saveChanges() {
+            const id = this.email;
+            const section = this.editSection;
+            const dataToUpdate = {
+                section: section
+            };
+    
+            db.collection("students")
+                .where("email", "==", id)
+                .get()
+                .then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+            
+            const data = doc.data();
+           this.Id=data.id;
+        });
+    })
+    .catch((error) => {
+        console.error("Error getting documents: ", error);
+    });
+            this.editMode=false;
+                
+        },
+
+        updateNewStudent(){
+            const id = this.Id;
+            const section = this.Section;
+            const dataToUpdate = {
+                id: id,
+                section: section
+            };
+            
+            db.collection("students").doc(this.email).update(dataToUpdate);
+            this.newStudent=false;
+            this.student=true;
+        },
+
+        editstudent(){
+            this.Teacher1 = true;
+            
+        },
+        showcheckin(){
+            this.x=true;
+        },
+
+        findroom(room){
+        db.collection("checkin")
+            .where("id", "==", room)
+            .onSnapshot((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    console.log(doc.id, " => ", doc.data());
+                });
+            })
+            .catch((error) => {
+                console.log("Error getting documents: ", error);
+            });
+        },
+
+        
+        openedit(){
+            this.editMode= true;
+        },
+        
+        autoRead() {
+        db.collection("students").onSnapshot((querySnapshot) => {
+            var stdlist = [];
+            querySnapshot.forEach((doc) => {
+            stdlist.push({ id: doc.id, ...doc.data() });
+            });
+            this.students = stdlist;
+        });
+        },
+        autoReaddata() {
+            db.collection("room").onSnapshot((querySnapshot) => {
+                var rooms = [];
+                querySnapshot.forEach((doc) => {
+                rooms.push({ id: doc.id, ...doc.data() });
+                });
+                this.rooms = rooms;
+            });
+            },
+        editroom(std){
+            this.editstd = std;
+            this.edr = "edit";
+            console.log(this.editstd)
+        },
+        edit(std){
+            this.editstd = std;
+            this.ed = "edit";
+        },
+        savedata(){
+            db.collection("students").doc(this.editstd.email).set(this.editstd);
+        },
+        savedataroom(){
+            const a = this.generateId.toString();
+            console.log(a);
+            db.collection("room").doc(this.room.room).set(this.room);
+        },
+
+
+        deleteData(std) {
+            console.log(std);
+            if (confirm("ต้องการลบข้อมูล")) {
+            db.collection("students").doc(std.id).delete();
+            }
+        },
+        deletestudent(std){
+            console.log(std);
+            if (confirm("ต้องการลบข้อมูล")) {
+            db.collection("students").doc(std.email ).delete();
+            }
+        },
+
+
+        deleteDataroom(std) {
+            if (confirm("ต้องการลบข้อมูล")) {
+            db.collection("room").doc(std.room).delete();
+            }
+        },
+
+        addData(){
+            this.ed = "เพิ่มนักเรียน";
+            this.editstd = {};
+        },
+        addDatar(){
+            this.edr = "เพิ่มนักเรียน";
+            this.editstd = {};
+        },
+        
+        
+
+        validateId() {
+            const idPattern = /^\d{9}-\d{1}$/;
+            if (!idPattern.test(this.Id)) {
+                this.$toast.error('รูปแบบของ ID ไม่ถูกต้อง (รูปแบบที่ถูกต้อง: 643020477-7)');
+            }
+        },
+        validateSection() {
+            if (this.Section < 0 || this.Section > 100) {
+                this.$toast.error('Section ต้องอยู่ในช่วง 0-100');
+            }
+        },
+        
+        
+        
+        
+        
+        
+        
+        google_login() {
+            var provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope("profile");
+            provider.addScope("email");
+            firebase.auth().signInWithPopup(provider) 
+                .then((result) => {
+                var user = result.user;
+                this.user = user.toJSON(); 
+                this.username = user.displayName;
+                this.email = user.email;
+                console.log(this.email);
+                this.getTeacher(this.email);                   
+                    
+            })
+
+            
+        },
+        google_logout(){
+            if(confirm("Are you sure?")){
+            firebase.auth().signOut();
+            this.student=false;
+            this.teacher=false;
+            this.Teacher1=false;
+            this.Teacher2=false;
+            this.Teacher3=false;
+            this.Teacher4=false;
+            this.Teacher5=false;
+            }
+        },   
+    },
+    computed: {
+        isIdValid() {
+            const idPattern = /^\d{9}-\d{1}$/;
+            return idPattern.test(this.Id);
+        },
+        isSectionValid() {
+            return this.Section >= 0 && this.Section <= 100;
+        },
+    },
+},
+    );
+    app.use(vuetify).mount("#app");
+    </script>
 </body>
 </html>
